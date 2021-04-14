@@ -1,57 +1,65 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <cstdlib>
-#include <ctime>
-#include <fstream>
+#include <cstdlib> // para usar o random
+#include <ctime>   // para inicializar o random e contar o tempo
+#include <fstream> // file input output
 #include <iomanip>
 
 class Map
 {
+
+    //Não pus um construtor na classe para dar a flexibilidade de criar um random map ou para dar load a outro
+
     //até posso mudar isto para private penso que não vou usar estas variaveis fora da classe
-public:
+public: //Atributos
     //Vetor que vai conter o mapa
-    std::vector<std::vector<std::string>> map;
+    std::vector<std::vector<std::string>> m_map;
 
     //Construir a grelha do mapa
-    std::string fence = "*";
-    std::string space = " ";
+    std::string m_fence = "*";
+    std::string m_space = " ";
 
     //Propriedades do mapa a definir depois de build map
-    int map_lines;
-    int map_columns;
+    int m_map_lines;
+    int m_map_columns;
 
     //Propriedades para definir como vou inserir fences dentro do mapa
-    int in_map_fence_c = 0;
-    int max_in_max_fence;
+    int m_in_map_fences = 0;
+    int m_max_in_map_fences;
     // probabilidade de inserir dentro do mapa == 1/casos_possivei assim entre aspas
     // posso melhorar esta parte para impor que não haja muitas fences seguidas tipo num grupo  futuramente ?
+    int m_casos_possiveis = 8;
 
-    int casos_possiveis = 8;
-
-public:
+public: //Metodos
+    //Random method para colocar ou não fences dentro do mapa
+    // quanto maior é casos_possiveis  menor é a probailidade obv
     bool rand_place(int col, int line)
     {
         bool place = 0;
-        if (in_map_fence_c < max_in_max_fence)
+        if (m_in_map_fences < m_max_in_map_fences)
         {
-            place = (1 == (rand() % casos_possiveis));
+            place = (1 == (rand() % m_casos_possiveis));
+            if (place)
+                m_in_map_fences++;
         }
 
         return place;
     }
+    // Tendo em conta a funcao funcao rand_place e se está nas bordas retorna true se for um desses casos
     bool place_fence(int col, int line)
     {
 
-        return (line == 0) || (line == (map_lines - 1)) || (col == 0) || (col == (map_columns - 1)) || (rand_place(col, line));
+        return (line == 0) || (line == m_map_lines - 1) || (col == 0) || (col == (m_map_columns - 1)) || (rand_place(col, line));
     }
 
+    //Constroi o mapa  e coloca fences conforme place_fence
     void build_map(int linhas, int colunas)
     {
 
-        map_lines = linhas;
-        map_columns = colunas;
-        max_in_max_fence = (map_lines * map_columns) / 5;
+        m_map_lines = linhas;
+        m_map_columns = colunas;
+        m_max_in_map_fences = (m_map_lines * m_map_columns) / 5;
         srand(time(NULL));
 
         std::string to_place;
@@ -60,39 +68,40 @@ public:
             std::vector<std::string> line;
             for (int c = 0; c < colunas; c++)
             {
-                to_place = space;
+                to_place = m_space;
                 if (place_fence(c, l))
                 {
-                    to_place = fence;
+                    to_place = m_fence;
                 }
                 line.push_back(to_place);
             }
-            map.push_back(line);
+            m_map.push_back(line);
         }
     }
 
     void display_map()
     {
 
-        for (int l = 0; l < map.size(); l++)
+        for (int l = 0; l < m_map.size(); l++)
         {
 
-            for (int c = 0; c < map[l].size(); c++)
+            for (int c = 0; c < m_map[l].size(); c++)
             {
 
-                std::cout << map[l][c];
+                std::cout << m_map[l][c];
             }
             std::cout << std::endl;
         }
     }
-
+    //Falta tratar disto
     std::string namefile(int filenumber)
-
     {
         std::string unique = "Teste";
-        return "MAZER_" + unique + ".txt";
+        return "MAZE_" + unique + ".txt";
     }
 
+    //Escrever/guardar o mapa num ficheiro txt o nome tem a ver com o número que é dado pelo user ainda não percebi
+    // vector -> txt
     void save()
     {
 
@@ -102,21 +111,23 @@ public:
         wfile.open(namefile(0));
 
         //Primeira linha com as dimensões do mapa
-        wfile << map_lines << "x" << map_columns << std::endl;
+        wfile << m_map_lines << "x" << m_map_columns << std::endl;
 
         //resto do mapa estou a usar o size() para poder ter mapas variaveis no futuro?
-        for (int linhas = 0; linhas < map.size(); linhas++)
+        for (int linhas = 0; linhas < m_map.size(); linhas++)
         {
 
-            int n_col = map[linhas].size();
+            int n_col = m_map[linhas].size();
             for (int colunas = 0; colunas < n_col; colunas++)
             {
-                wfile << map[linhas][colunas];
+                wfile << m_map[linhas][colunas];
             }
             wfile << std::endl;
         }
+        wfile.close();
     }
 
+    //Carregar mapa txt -> vector
     void load(int filenumber)
     {
 
@@ -127,14 +138,13 @@ public:
 
         //ler a primeira linha e define-se umas propriedades do mapa (member properties)
         char sep;
-        rfile >> map_lines >> sep >> map_columns;
+        rfile >> m_map_lines >> sep >> m_map_columns;
 
         /*Ler o resto do mapa usei o metodo getline para experimentar 
          os unicos problemas que tive foi porque escolhi usar strings e este metodo  acho que usa cstrings
          logo ao indexar read_lina é como se fosse um array de chars logo tenho que o transformar numa strin
         */
         std::string read_line;
-        int counter = 0;
         while (getline(rfile, read_line))
         {
             std::vector<std::string> linha;
@@ -143,9 +153,9 @@ public:
                 std::string to_push = std::string(1, read_line[col]);
                 linha.push_back(to_push);
             }
-            map.push_back(linha);
+            m_map.push_back(linha);
         }
-        counter++;
+        rfile.close();
     }
 };
 
