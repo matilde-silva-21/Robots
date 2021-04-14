@@ -120,14 +120,19 @@ public:
     void load(int filenumber)
     {
 
-        std::ifstream rfile;
+        std::ifstream rfile; // input from file
 
+        //Novamente qual é o ficheiro e o tratamento do nome do tal está abstraido deste metodo
         rfile.open(namefile(filenumber));
 
-        char sep;
         //ler a primeira linha e define-se umas propriedades do mapa (member properties)
+        char sep;
         rfile >> map_lines >> sep >> map_columns;
 
+        /*Ler o resto do mapa usei o metodo getline para experimentar 
+         os unicos problemas que tive foi porque escolhi usar strings e este metodo  acho que usa cstrings
+         logo ao indexar read_lina é como se fosse um array de chars logo tenho que o transformar numa strin
+        */
         std::string read_line;
         int counter = 0;
         while (getline(rfile, read_line))
@@ -150,6 +155,7 @@ int main()
     Map first_try;
     first_try.load(0);
     first_try.display_map();
+    //oi
 
     return 0;
 }
