@@ -160,6 +160,13 @@ public: //Metodos
     }
 };
 
+void clean()
+{
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cout << "\nInvalid input. ";
+}
+
 void menu()
 {
 
@@ -201,7 +208,7 @@ void menu()
 
         else
         {
-            std::cout << "\nInvalid input. ";
+            clean();
             return menu();
         }
     }
@@ -210,11 +217,52 @@ void menu()
 
     else
     {
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        std::cout << "\nInvalid input. ";
+        clean();
         return menu();
     }
+}
+
+void action_control()
+{
+
+    //a funcao verifica se a ação inserida é valida e se estiver em maiuscula passa a minuscula
+
+    char action;
+
+    const std::string commands_lower = "qweasdzxc";
+    const std::string commands_upper = "QWEASDZXC";
+
+    std::cout << "Enter your next move: ";
+
+    if (std::cin >> action)
+    {
+
+        if (commands_lower.find(action) != std::string::npos)
+        {
+            //aqui era a altura em que se chamava a funcao para mexer o H
+        }
+
+        else if (commands_upper.find(action) != std::string::npos)
+        {
+            action = commands_lower[commands_upper.find(action)]; //se o caracter estiver em maiuscula passa a minuscula
+
+            //aqui era a altura em que se chamava a funcao para mexer o H (na funcao os comandos tem de estar em minuscula!
+        }
+
+        else
+        {
+            clean();
+            return action_control();
+        }
+    }
+
+    else
+    {
+        clean();
+        return action_control();
+    }
+
+    return;
 }
 
 int main()
