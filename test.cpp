@@ -5,6 +5,7 @@
 #include <ctime>   // para inicializar o random e contar o tempo
 #include <fstream> // file input output
 #include <iomanip>
+#include <limits> // std::numeric_limits<std::streamsize>::max()
 
 class Map
 {
@@ -159,57 +160,61 @@ public: //Metodos
     }
 };
 
-void menu(){
-    
+void menu()
+{
+
     int redu;
-    string rules;
-    
-    cout<<"Enter 0 to exit, 1 for the rules and 2 to play: ";
-    
+    std::string rules;
+
+    std::cout << "Enter 0 to exit, 1 for the rules and 2 to play: ";
+
     // verificar se o input esta correto
-    if (cin>>redu){
-        
-        if (redu==0){
+    if (std::cin >> redu)
+    {
+
+        if (redu == 0)
+        {
             return;
         }
-        
-        else if(redu==1){
-            
-            ifstream myfile ("rules.txt");
+
+        else if (redu == 1)
+        {
+
+            std::ifstream myfile("rules.txt");
             if (myfile.is_open())
             {
-                while ( getline (myfile,rules) )
+                while (getline(myfile, rules))
                 {
-                    cout << rules << '\n';
-                    cout<<"chupa";
+                    std::cout << rules << '\n';
+                    std::cout << "chupa";
                 }
                 myfile.close();
-                
+
                 return menu();
             }
-                
         }
-        
-        else if(redu==2){
+
+        else if (redu == 2)
+        {
             //como chamar o jogo?
         }
-        
-        else{
-            cout<<"\nInvalid input. ";
+
+        else
+        {
+            std::cout << "\nInvalid input. ";
             return menu();
         }
     }
-    
+
     //para lidar com o bad input
-    
-    else{
-        cin.clear();
-        cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-        cout<<"\nInvalid input. ";
+
+    else
+    {
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "\nInvalid input. ";
         return menu();
     }
-    
-    
 }
 
 int main()
