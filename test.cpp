@@ -146,6 +146,8 @@ public: //Metodos
          logo ao indexar read_lina é como se fosse um array de chars logo tenho que o transformar numa strin
         */
         std::string read_line;
+        //ao tirar as dimensoes do mapa e o separador ainda fica lá a primeira linha isto é a forma imediata da tirar;
+        getline(rfile, read_line);
         while (getline(rfile, read_line))
         {
             std::vector<std::string> linha;
@@ -159,6 +161,134 @@ public: //Metodos
         rfile.close();
     }
 };
+
+struct tuple
+{
+    int m_a;
+    int m_b;
+    tuple(int a, int b)
+    {
+        m_a = a;
+        m_b = b;
+    }
+};
+
+class Entity
+{
+public: // Atributos
+    bool m_is_alive;
+    std::string m_alive;
+    std::string m_dead;
+    std::string m_entity_square[3][3];
+    Map *m_pointermap;
+    int m_p_line;
+    int m_p_col;
+    Entity(int line, int col, std::string alive_str, Map &mapa)
+    {
+        m_is_alive = 1;
+        m_p_line = line;
+        m_p_col = col;
+        m_alive = alive_str;
+        m_pointermap = &mapa;
+        update_entity_square();
+    }
+
+public: // Métodos
+    void display_entity_square()
+    {
+
+        int strsize = sizeof(std::string);
+        for (int line = 0; line < 3; line++)
+        {
+            char *line_pointer = (char *)(m_entity_square) + 3 * line * strsize;
+            for (int col = 0; col < 3; col++)
+                std::cout << *((std::string *)(line_pointer + col * strsize));
+
+            std::cout << std::endl;
+        }
+    }
+    void update_entity_square()
+    {
+        int pos_line = m_p_line - 1;
+        int pos_col = m_p_col - 1;
+        for (int l = 0; l < 3; l++)
+        {
+            for (int c = 0; c < 3; c++)
+            {
+                m_entity_square[l][c] = (*m_pointermap).m_map[pos_line + l][pos_col + c];
+            }
+        }
+    }
+    bool move_player(char move)
+    {
+        bool canmove = 1;
+        tuple movement(0, 0);
+        switch (move)
+
+        {
+        case 'Q':
+        {
+            movement = tuple(-1, -1);
+            break;
+        }
+        case 'W':
+        {
+            movement = tuple(-1, 0);
+            break;
+        }
+        case 'E':
+        {
+            movement = tuple(-1, 1);
+            break;
+        }
+        case 'A':
+        {
+            movement = tuple(0, -1);
+            break;
+        }
+        case 'S':
+        {
+            movement = tuple(0, 0);
+            break;
+        }
+        case 'D':
+        {
+            movement = tuple(0, 1);
+            break;
+        }
+        case 'Z':
+        {
+            movement = tuple(1, -1);
+            break;
+        }
+        case 'X':
+        {
+            movement = tuple(1, 0);
+            break;
+        }
+        case 'C':
+        {
+            movement = tuple(1, 1);
+            break;
+        }
+        }
+
+        int newline = m_p_line + movement.m_a;
+        int newcol = m_p_col + movement.m_b;
+        if ((*m_pointermap).m_map[newline][newcol] == "r")
+        {
+            std::cout << "Movimento inválido!" << std::endl;
+
+            return 0;
+        }
+        (*m_pointermap).m_map[m_p_line][m_p_col] = " ";
+        m_p_line = newline;
+        m_p_col = newcol;
+        (*m_pointermap).m_map[m_p_line][m_p_col] = m_alive;
+        return canmove;
+    }
+};
+/* Experimentei ter dois constructors mas acabava por me repetir então vou pô-lo na parent class*/
 
 void clean()
 {
@@ -271,7 +401,18 @@ int main()
     Map first_try;
     first_try.load(0);
     first_try.display_map();
-    //oi
+    Entity player(5, 15, "H", first_try);
+    Entity robot1(1, 1, "R", first_try);
+
+    char move;
+    do
+    {
+
+        std::cout << "Digite para onde pretende ir :";
+        std::cin >> move;
+        player.move_player(move);
+        first_try.display_map();
+    } while (player.m_is_alive);
 
     return 0;
 }
