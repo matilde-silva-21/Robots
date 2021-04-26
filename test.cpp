@@ -6,6 +6,7 @@
 #include <fstream> // file input output
 #include <iomanip>
 #include <limits> // std::numeric_limits<std::streamsize>::max()
+#include <chrono> // para a classe do timer
 
 struct tuple
 {
@@ -24,6 +25,28 @@ struct tuple
     }
 };
 
+class timer
+{
+
+public:
+    auto start()
+    {
+        auto start = std::chrono::high_resolution_clock::now();
+        return start;
+    }
+
+    auto stop()
+    {
+        auto stop = std::chrono::high_resolution_clock::now();
+        return stop;
+    }
+    auto total()
+    {
+        auto total = std::chrono::duration_cast<std::chrono::microseconds>(stop() - start());
+        return total;
+    }
+};
+
 class Map
 {
 
@@ -31,11 +54,11 @@ class Map
     //até posso mudar isto para private penso que não vou usar estas variaveis fora da classe
 public: //Atributos
     //Vetor que vai conter o mapa
-    std::vector<std::vector<std::string>> m_map;
+    std::vector<std::vector<char>> m_map;
 
     //Construir a grelha do mapa
-    std::string m_fence = "*";
-    std::string m_space = " ";
+    char m_fence = '*';
+    char m_space = ' ';
 
     //Propriedades do mapa a definir depois de build map
     int m_map_lines;
@@ -79,10 +102,10 @@ public: //Metodos
         m_max_in_map_fences = (m_map_lines * m_map_columns) / 5;
         srand(time(NULL));
 
-        std::string to_place;
+        char to_place;
         for (int l = 0; l < linhas; l++)
         {
-            std::vector<std::string> line;
+            std::vector<char> line;
             for (int c = 0; c < colunas; c++)
             {
                 to_place = m_space;
@@ -166,10 +189,10 @@ public: //Metodos
         getline(rfile, read_line);
         while (getline(rfile, read_line))
         {
-            std::vector<std::string> linha;
+            std::vector<char> linha;
             for (int col = 0; col < read_line.size(); col++)
             {
-                std::string to_push = std::string(1, read_line[col]);
+                char to_push = read_line[col];
                 linha.push_back(to_push);
             }
             m_map.push_back(linha);
@@ -178,12 +201,12 @@ public: //Metodos
     }
     //Para fora da classe não ter que mexer com m_map
     // e assim futuramente ate posso por m_map como private?
-    void change_tile(int line, int col, std::string novo)
+    void change_tile(int line, int col, char novo)
     {
         m_map[line][col] = novo;
     }
 
-    std::string get_tile(int line, int col)
+    char get_tile(int line, int col)
     {
         return m_map[line][col];
     }
@@ -193,15 +216,15 @@ class Entity
 {
 public: // Atributos
     bool m_is_alive;
-    std::string m_alive;
-    std::string m_dead;
-    std::string m_corrent;
-    std::string m_entity_square[3][3];
+    char m_alive;
+    char m_dead;
+    char m_corrent;
+    char m_entity_square[3][3];
     Map *m_pointermap;
     int m_p_line;
     int m_p_col;
 
-    Entity(int line, int col, std::string alive_str, Map &mapa)
+    Entity(int line, int col, char alive_str, Map &mapa)
     {
         m_is_alive = 1;
         m_p_line = line;
@@ -210,26 +233,28 @@ public: // Atributos
         m_corrent = alive_str;
         // m_alive é uma string de len 1 o at(0) devolve me uma char ao somar 32 estou a convertÊlo para minuscula
         // na tabela de ascii as minusculas distam 32 das maiusculas
-        m_dead = std::string(1, (m_alive.at(0)) + 32);
+        //m_dead = std::string(1, (m_alive.at(0)) + 32);
+        m_dead = char(m_alive + 32);
 
         m_pointermap = &mapa;
-        //update_entity_square();
+        //update_entity_square() provavelmente vou remover esta funcao;
     }
 
 public: // Métodos
+    //dá para mandar embora
     void display_entity_square()
     {
 
-        int strsize = sizeof(std::string);
         for (int line = 0; line < 3; line++)
         {
-            char *line_pointer = (char *)(m_entity_square) + 3 * line * strsize;
+            char *line_pointer = (char *)(m_entity_square) + 3 * line;
             for (int col = 0; col < 3; col++)
-                std::cout << *((std::string *)(line_pointer + col * strsize));
+                std::cout << *(line_pointer + col);
 
             std::cout << std::endl;
         }
     }
+    //dá para mandar embora
     void update_entity_square()
     {
         //Tenho que alterar pois se a posicao do player é 0,0 vou tentar acedar a -1,-1
@@ -251,13 +276,13 @@ public: // Métodos
     {
         //O movimento de uma entidade consiste em mover para a nova posicão  preencher a antiga com um espaço e dar update á member variable posicao
 
-        (*m_pointermap).change_tile(m_p_line, m_p_col, " ");
+        (*m_pointermap).change_tile(m_p_line, m_p_col, ' ');
         m_p_line = newline;
         m_p_col = newcol;
 
         (*m_pointermap).change_tile(m_p_line, m_p_col, m_corrent);
     }
-    bool move_player(char move)
+    bool move_player(char move, std::vector<Entity> &entity_vec)
     {
         bool canmove = 1;
         tuple movement(0, 0);
@@ -313,23 +338,36 @@ public: // Métodos
 
         int newline = m_p_line + movement.x;
         int newcol = m_p_col + movement.y;
-        std::string conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
+        tuple position(newline, newcol);
+        char conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
 
-        if (conteudo_nova_posicao == "r")
+        if (conteudo_nova_posicao == 'r')
         {
             std::cout << "Movimento inválido!" << std::endl;
             return 0;
         }
 
-        else if (conteudo_nova_posicao == "*" || conteudo_nova_posicao == "R")
+        else if (conteudo_nova_posicao == '*')
         {
             m_is_alive = 0;
             m_corrent = m_dead;
         }
+        else if (conteudo_nova_posicao == 'R')
+        {
+            for (int i = 0; i < entity_vec.size(); i++)
+            {
+                if (entity_vec[i].position().equal(position))
+                {
+                    entity_vec[i].m_is_alive = 0;
+                }
+            }
+            m_is_alive = 0;
+            m_corrent = m_dead;
+        }
         general_move(newline, newcol);
-
         return canmove;
     }
+
     void move_robot(Entity &player, std::vector<Entity> &entity_vec)
     {
         if (m_is_alive)
@@ -337,12 +375,12 @@ public: // Métodos
             int newline = m_p_line + 1;
             int newcol = m_p_col + 1;
             tuple position(newline, newcol);
-            std::string conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
-            if (conteudo_nova_posicao != " ")
+            char conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
+            if (conteudo_nova_posicao != ' ')
             {
                 m_is_alive = 0;
                 m_corrent = m_dead;
-                if (conteudo_nova_posicao == "R")
+                if (conteudo_nova_posicao == 'R')
                 {
                     for (int i = 0; i < entity_vec.size(); i++)
                     {
@@ -352,7 +390,7 @@ public: // Métodos
                         }
                     }
                 }
-                else if (conteudo_nova_posicao == "H")
+                else if (conteudo_nova_posicao == 'H')
                 {
                     player.m_is_alive = 0;
                     m_corrent = m_alive;
@@ -361,7 +399,7 @@ public: // Métodos
             general_move(newline, newcol);
         }
     }
-    void get_robots_player(std::string robotstr, std::vector<Entity> &vecrobots)
+    void get_robots_player(char robotstr, std::vector<Entity> &vecrobots)
     {
 
         int lines = (*m_pointermap).m_map_lines;
@@ -371,7 +409,7 @@ public: // Métodos
 
             for (int col = 0; col < columns; col++)
             {
-                std::string conteudo_tile = (*m_pointermap).m_map[line][col];
+                char conteudo_tile = (*m_pointermap).m_map[line][col];
                 if (conteudo_tile == m_alive)
                 {
                     m_p_line = line;
@@ -395,6 +433,40 @@ void clean()
     std::cout << "\nInvalid input. ";
 }
 
+char get_input()
+{
+
+    //a funcao verifica se a ação inserida é valida e se estiver em maiuscula passa a minuscula
+    char action;
+
+    const std::string commands_lower = "qweasdzxc";
+    const std::string commands_upper = "QWEASDZXC";
+    bool can_continue = 1;
+    do
+    {
+        std::cout << "Enter your next move: ";
+
+        if (std::cin >> action)
+        {
+
+            // npos none position ou seja não encontrou
+            if (commands_upper.find(action) != std::string::npos)
+            {
+                return action;
+            }
+
+            else if (commands_lower.find(action) != std::string::npos)
+            {
+                action = commands_upper[commands_lower.find(action)];
+                return action;
+            }
+        }
+
+    } while (can_continue);
+    //porque sem isto não funciona?
+    return 'c';
+}
+
 void menu()
 {
 
@@ -406,12 +478,13 @@ void menu()
     // verificar se o input esta correto
     if (std::cin >> redu)
     {
-
+        //Sair
         if (redu == 0)
         {
             return;
         }
 
+        //Mostrar as regras
         else if (redu == 1)
         {
 
@@ -428,23 +501,24 @@ void menu()
                 return menu();
             }
         }
-
+        //Caso do jogo
         else if (redu == 2)
         {
             std::vector<Entity> vec_robots;
             Map first_try;
             first_try.load(0);
-            Entity player(1, 1, "H", first_try);
-            player.get_robots_player("R", vec_robots);
+            Entity player(1, 1, 'H', first_try);
+            player.get_robots_player('R', vec_robots);
             first_try.display_map();
 
             char move;
             do
             {
 
-                std::cout << "Digite para onde pretende ir :";
-                std::cin >> move;
-                player.move_player(move);
+                move = get_input();
+                //A situação em que o player vai contra um robo ainda não esta contemplada
+                //bastou fazer a colisao com entidades como faco robot com robot
+                player.move_player(move, vec_robots);
                 for (int i = 0; i < vec_robots.size(); i++)
                 {
                     vec_robots[i].move_robot(player, vec_robots);
@@ -452,7 +526,7 @@ void menu()
                 first_try.display_map();
             } while (player.m_is_alive);
         }
-
+        //Opção invalida
         else
         {
             clean();
@@ -461,55 +535,11 @@ void menu()
     }
 
     //para lidar com o bad input
-
     else
     {
         clean();
         return menu();
     }
-}
-
-void action_control()
-{
-
-    //a funcao verifica se a ação inserida é valida e se estiver em maiuscula passa a minuscula
-
-    char action;
-
-    const std::string commands_lower = "qweasdzxc";
-    const std::string commands_upper = "QWEASDZXC";
-
-    std::cout << "Enter your next move: ";
-
-    if (std::cin >> action)
-    {
-
-        if (commands_lower.find(action) != std::string::npos)
-        {
-            //aqui era a altura em que se chamava a funcao para mexer o H
-        }
-
-        else if (commands_upper.find(action) != std::string::npos)
-        {
-            action = commands_lower[commands_upper.find(action)]; //se o caracter estiver em maiuscula passa a minuscula
-
-            //aqui era a altura em que se chamava a funcao para mexer o H (na funcao os comandos tem de estar em minuscula!
-        }
-
-        else
-        {
-            clean();
-            return action_control();
-        }
-    }
-
-    else
-    {
-        clean();
-        return action_control();
-    }
-
-    return;
 }
 
 int main()
