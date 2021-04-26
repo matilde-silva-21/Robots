@@ -6,6 +6,9 @@
 #include <fstream> // file input output
 #include <iomanip>
 #include <limits> // std::numeric_limits<std::streamsize>::max()
+#include <chrono>
+using namespace std::chrono;
+
 
 struct tuple
 {
@@ -17,7 +20,7 @@ struct tuple
         x = a;
         y = b;
     }
-
+    
     bool equal(tuple tup1)
     {
         return tup1.x == x && tup1.y == y;
@@ -30,7 +33,7 @@ struct tuple
     {
         if (index)
             y++;
-
+        
         else
             x++;
     }
@@ -45,28 +48,28 @@ struct tuple
 
 class Map
 {
-
+    
     //Não pus um construtor na classe para dar a flexibilidade de criar um random map ou para dar load a outro
     //até posso mudar isto para private penso que não vou usar estas variaveis fora da classe
 public: //Atributos
     //Vetor que vai conter o mapa
     std::vector<std::vector<char>> m_map;
-
+    
     //Construir a grelha do mapa
     char m_fence = '*';
     char m_space = ' ';
-
+    
     //Propriedades do mapa a definir depois de build map
     int m_map_lines;
     int m_map_columns;
-
+    
     //Propriedades para definir como vou inserir fences dentro do mapa
     int m_in_map_fences = 0;
     int m_max_in_map_fences;
     // probabilidade de inserir dentro do mapa == 1/casos_possivei assim entre aspas
     // posso melhorar esta parte para impor que não haja muitas fences seguidas tipo num grupo  futuramente ?
     int m_casos_possiveis = 6;
-
+    
 public: //Metodos
     //Random method para colocar ou não fences dentro do mapa
     // quanto maior é casos_possiveis  menor é a probailidade obv
@@ -79,25 +82,25 @@ public: //Metodos
             if (place)
                 m_in_map_fences++;
         }
-
+        
         return place;
     }
     // Tendo em conta a funcao funcao rand_place e se está nas bordas retorna true se for um desses casos
     bool place_fence(int col, int line)
     {
-
+        
         return (line == 0) || (line == m_map_lines - 1) || (col == 0) || (col == (m_map_columns - 1)) || (rand_place(col, line));
     }
-
+    
     //Constroi o mapa  e coloca fences conforme place_fence
     void build_map(int linhas, int colunas)
     {
-
+        
         m_map_lines = linhas;
         m_map_columns = colunas;
         m_max_in_map_fences = (m_map_lines * m_map_columns) / 5;
         srand(time(NULL));
-
+        
         char to_place;
         for (int l = 0; l < linhas; l++)
         {
@@ -114,45 +117,46 @@ public: //Metodos
             m_map.push_back(line);
         }
     }
-
+    
     void display_map()
     {
-
+        
         for (int l = 0; l < m_map.size(); l++)
         {
-
+            
             for (int c = 0; c < m_map[l].size(); c++)
             {
-
+                
                 std::cout << m_map[l][c];
             }
             std::cout << std::endl;
         }
     }
+    
     //Falta tratar disto
     std::string namefile(int filenumber)
     {
         std::string unique = "Teste";
         return "MAZE_" + unique + ".txt";
     }
-
+    
     //Escrever/guardar o mapa num ficheiro txt o nome tem a ver com o número que é dado pelo user ainda não percebi
     // vector -> txt
     void save()
     {
-
+        
         std::ofstream wfile; //output file
-
+        
         //Não me vou preocupar com o tratemento do nome nesta func ela já recebe o nome tratado
         wfile.open(namefile(0));
-
+        
         //Primeira linha com as dimensões do mapa
         wfile << m_map_lines << "x" << m_map_columns << std::endl;
-
+        
         //resto do mapa estou a usar o size() para poder ter mapas variaveis no futuro?
         for (int linhas = 0; linhas < m_map.size(); linhas++)
         {
-
+            
             int n_col = m_map[linhas].size();
             for (int colunas = 0; colunas < n_col; colunas++)
             {
@@ -162,24 +166,24 @@ public: //Metodos
         }
         wfile.close();
     }
-
+    
     //Carregar mapa txt -> vector
     void load(int filenumber)
     {
-
+        
         std::ifstream rfile; // input from file
-
+        
         //Novamente qual é o ficheiro e o tratamento do nome do tal está abstraido deste metodo
         rfile.open(namefile(filenumber));
-
+        
         //ler a primeira linha e define-se umas propriedades do mapa (member properties)
         char sep;
         rfile >> m_map_lines >> sep >> m_map_columns;
-
-        /*Ler o resto do mapa usei o metodo getline para experimentar 
+        
+        /*Ler o resto do mapa usei o metodo getline para experimentar
          os unicos problemas que tive foi porque escolhi usar strings e este metodo  acho que usa cstrings
          logo ao indexar read_lina é como se fosse um array de chars logo tenho que o transformar numa strin
-        */
+         */
         std::string read_line;
         //ao tirar as dimensoes do mapa e o separador ainda fica lá a primeira linha isto é a forma imediata da tirar;
         getline(rfile, read_line);
@@ -201,7 +205,7 @@ public: //Metodos
     {
         m_map[line][col] = novo;
     }
-
+    
     char get_tile(int line, int col)
     {
         return m_map[line][col];
@@ -219,7 +223,7 @@ public: // Atributos
     Map *m_pointermap;
     int m_p_line;
     int m_p_col;
-
+    
     Entity(int line, int col, char alive_str, Map &mapa)
     {
         m_is_alive = 1;
@@ -231,22 +235,22 @@ public: // Atributos
         // na tabela de ascii as minusculas distam 32 das maiusculas
         //m_dead = std::string(1, (m_alive.at(0)) + 32);
         m_dead = char(m_alive + 32);
-
+        
         m_pointermap = &mapa;
         //update_entity_square() provavelmente vou remover esta funcao;
     }
-
+    
 public: // Métodos
     //dá para mandar embora
     void display_entity_square()
     {
-
+        
         for (int line = 0; line < 3; line++)
         {
             char *line_pointer = (char *)(m_entity_square) + 3 * line;
             for (int col = 0; col < 3; col++)
                 std::cout << *(line_pointer + col);
-
+            
             std::cout << std::endl;
         }
     }
@@ -271,11 +275,11 @@ public: // Métodos
     void general_move(int newline, int newcol)
     {
         //O movimento de uma entidade consiste em mover para a nova posicão  preencher a antiga com um espaço e dar update á member variable posicao
-
+        
         (*m_pointermap).change_tile(m_p_line, m_p_col, ' ');
         m_p_line = newline;
         m_p_col = newcol;
-
+        
         (*m_pointermap).change_tile(m_p_line, m_p_col, m_corrent);
     }
     bool move_player(char move, std::vector<Entity> &entity_vec)
@@ -283,66 +287,66 @@ public: // Métodos
         bool canmove = 1;
         tuple movement(0, 0);
         switch (move)
-
+        
         {
-        case 'Q':
-        {
-            movement = tuple(-1, -1);
-            break;
+            case 'Q':
+            {
+                movement = tuple(-1, -1);
+                break;
+            }
+            case 'W':
+            {
+                movement = tuple(-1, 0);
+                break;
+            }
+            case 'E':
+            {
+                movement = tuple(-1, 1);
+                break;
+            }
+            case 'A':
+            {
+                movement = tuple(0, -1);
+                break;
+            }
+            case 'S':
+            {
+                movement = tuple(0, 0);
+                break;
+            }
+            case 'D':
+            {
+                movement = tuple(0, 1);
+                break;
+            }
+            case 'Z':
+            {
+                movement = tuple(1, -1);
+                break;
+            }
+            case 'X':
+            {
+                movement = tuple(1, 0);
+                break;
+            }
+            case 'C':
+            {
+                movement = tuple(1, 1);
+                break;
+            }
         }
-        case 'W':
-        {
-            movement = tuple(-1, 0);
-            break;
-        }
-        case 'E':
-        {
-            movement = tuple(-1, 1);
-            break;
-        }
-        case 'A':
-        {
-            movement = tuple(0, -1);
-            break;
-        }
-        case 'S':
-        {
-            movement = tuple(0, 0);
-            break;
-        }
-        case 'D':
-        {
-            movement = tuple(0, 1);
-            break;
-        }
-        case 'Z':
-        {
-            movement = tuple(1, -1);
-            break;
-        }
-        case 'X':
-        {
-            movement = tuple(1, 0);
-            break;
-        }
-        case 'C':
-        {
-            movement = tuple(1, 1);
-            break;
-        }
-        }
-
+        
         int newline = m_p_line + movement.x;
         int newcol = m_p_col + movement.y;
         tuple position(newline, newcol);
         char conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
-
+        
         if (conteudo_nova_posicao == 'r')
         {
             std::cout << "Invalid Movement!" << std::endl;
             return 0;
         }
-
+        
         else if (conteudo_nova_posicao == '*')
         {
             m_is_alive = 0;
@@ -363,7 +367,7 @@ public: // Métodos
         general_move(newline, newcol);
         return canmove;
     }
-
+    
     void move_robot(Entity &player, std::vector<Entity> &entity_vec)
     {
         if (m_is_alive)
@@ -410,15 +414,15 @@ public: // Métodos
             general_move(newline, newcol);
         }
     }
-
+    
     void get_robots_player(char robotstr, std::vector<Entity> &vecrobots)
     {
-
+        
         int lines = (*m_pointermap).m_map_lines;
         int columns = (*m_pointermap).m_map_columns;
         for (int line = 0; line < lines; line++)
         {
-
+            
             for (int col = 0; col < columns; col++)
             {
                 char conteudo_tile = (*m_pointermap).m_map[line][col];
@@ -448,10 +452,10 @@ void clean(bool showmessege = 0)
 
 char get_input()
 {
-
+    
     //a funcao verifica se a ação inserida é valida e se estiver em maiuscula passa a minuscula
     char action;
-
+    
     const std::string commands_lower = "qweasdzxc";
     const std::string commands_upper = "QWEASDZXC";
     do
@@ -461,13 +465,13 @@ char get_input()
         //Só vamos verificar se a acão é possivel e  caso seja torna-la maiuscula caso o user tenha digitado apenas um caracter
         if (std::cin.good() && std::cin.peek() == '\n')
         {
-
+            
             // npos none position ou seja não encontrou
             if (commands_upper.find(action) != std::string::npos)
             {
                 return action;
             }
-
+            
             else if (commands_lower.find(action) != std::string::npos)
             {
                 action = commands_upper[commands_lower.find(action)];
@@ -476,10 +480,46 @@ char get_input()
         }
         //Caso não tenhamos um input valido vamos limpar o buffer do teclado
         clean(1);
-
+        
     } while (true);
     //porque sem isto não funciona?
     return 's';
+}
+
+void leaderboard(int gametime, std::string mazenumber){
+    
+    std::ofstream scores;
+    std::string player;
+    
+    std::cout<<"Please write your name (up to 15 characters): ";
+    getline(std::cin,player);
+    
+    while(player.size()>15){
+        std::cout<<"Invalid input. Please write up to 15 characters: ";
+        getline(std::cin,player);
+    }
+    
+    scores.open("MAZE_"+mazenumber+"_WINNERS.txt");
+    
+    
+    if (scores.fail()) {
+        
+        std::ofstream scores("MAZE_"+mazenumber+"_WINNERS.txt");
+        
+        scores <<"Player          - Time\n----------------------\n";
+    }
+    
+    //quer tenha sido agora criado o ficheiro ou quer ele ja tenha existido esta aberto portanto posso usar esta forma
+    
+    
+    int spaces = 15 - player.size();
+    int length = 5 - (std::to_string(gametime).length());
+    
+    scores <<player<<std::string(spaces, ' ') <<'-'<<std::string(length, ' ')<<gametime;
+    
+    scores.close();
+    
+    return;
 }
 
 void display_rules()
@@ -500,6 +540,9 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 {
     //Secalhar sair logo quando o player morrer?
     //Tratar melhor de quando o player é comido ficar a mostrar o player
+    
+    auto start = high_resolution_clock::now(); //comecar o relogio
+    
     std::vector<Entity> vec_robots;
     Map first_try;
     first_try.load(0);
@@ -511,9 +554,9 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
     do
     {
         move = get_input();
-
+        
         player.move_player(move, vec_robots);
-
+        
         //Mover os robots
         for (int i = 0; i < vec_robots.size(); i++)
         {
@@ -521,20 +564,32 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
             if (!player.m_is_alive)
                 break;
         }
+        
         //Não posso fazer o teste no mesmo ciclo em que movo os robots pois um pode estar vivo e depois ser morto por outro robot
         robots_alive = 0;
         for (int i = 0; i < vec_robots.size(); i++)
         {
             robots_alive |= vec_robots[i].m_is_alive;
         }
-
+        
         first_try.display_map();
     } while (player.m_is_alive && robots_alive);
+    
+    auto stop = high_resolution_clock::now();
+    
+    int gametime = (duration_cast<seconds>(stop - start)).count();
+    
+    if (player.m_is_alive){
+        
+        // nao faco ideia onde ir buscar o numero do maze
+        leaderboard(gametime, "XX");
+    }
+    
 }
 
 void menu()
 {
-
+    
     int option;
     //Menu do while em vez de voltar recursivamente ao menu em cada caso assim é mais eficiente
     do
@@ -542,12 +597,12 @@ void menu()
         std::cout << "Enter 0 to exit, 1 for the rules and 2 to play: ";
         if (std::cin >> option)
         {
-
+            
             if (option == 1) //Mostrar regras
             {
                 display_rules();
             }
-
+            
             else if (option == 2) //Entrar no jogo
             {
                 play_game();
@@ -560,15 +615,16 @@ void menu()
                 randommap.save();
             }
         }
-        //Se houver erro vai limpar o buffer , independente mente
+        //Se houver erro vai limpar o buffer , independentemente
         clean();
     } while (option);
 }
 
 int main()
 {
-
+    
     menu();
-
+    
     return 0;
 }
+
