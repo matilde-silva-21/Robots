@@ -22,6 +22,25 @@ struct tuple
     {
         return tup1.x == x && tup1.y == y;
     }
+    int get(int index)
+    {
+        return (index == 0) ? x : y;
+    }
+    void increment(int index)
+    {
+        if (index)
+            y++;
+
+        else
+            x++;
+    }
+    void decrement(int index)
+    {
+        if (index)
+            y--;
+        else
+            x--;
+    }
 };
 
 class Map
@@ -46,7 +65,7 @@ public: //Atributos
     int m_max_in_map_fences;
     // probabilidade de inserir dentro do mapa == 1/casos_possivei assim entre aspas
     // posso melhorar esta parte para impor que não haja muitas fences seguidas tipo num grupo  futuramente ?
-    int m_casos_possiveis = 8;
+    int m_casos_possiveis = 6;
 
 public: //Metodos
     //Random method para colocar ou não fences dentro do mapa
@@ -320,7 +339,7 @@ public: // Métodos
 
         if (conteudo_nova_posicao == 'r')
         {
-            std::cout << "Movimento inválido!" << std::endl;
+            std::cout << "Invalid Movement!" << std::endl;
             return 0;
         }
 
@@ -349,9 +368,23 @@ public: // Métodos
     {
         if (m_is_alive)
         {
-            int newline = m_p_line + 1;
-            int newcol = m_p_col + 1;
-            tuple position(newline, newcol);
+            tuple positionplayer = player.position();
+            tuple positionthis = position();
+            tuple newposition = positionthis;
+            for (int i = 0; i < 2; i++)
+            {
+                int diff = positionplayer.get(i) - positionthis.get(i);
+                if (diff > 0)
+                {
+                    newposition.increment(i);
+                }
+                else if (diff < 0)
+                {
+                    newposition.decrement(i);
+                }
+            }
+            int newline = newposition.x;
+            int newcol = newposition.y;
             char conteudo_nova_posicao = (*m_pointermap).get_tile(newline, newcol);
             if (conteudo_nova_posicao != ' ')
             {
@@ -361,7 +394,7 @@ public: // Métodos
                 {
                     for (int i = 0; i < entity_vec.size(); i++)
                     {
-                        if (entity_vec[i].position().equal(position))
+                        if (entity_vec[i].position().equal(newposition))
                         {
                             entity_vec[i].m_is_alive = 0;
                         }
@@ -370,12 +403,14 @@ public: // Métodos
                 else if (conteudo_nova_posicao == 'H')
                 {
                     player.m_is_alive = 0;
-                    m_corrent = m_alive;
+                    //Para quando um robot comer um player aparecer o player
+                    m_corrent = 'h';
                 }
             }
             general_move(newline, newcol);
         }
     }
+
     void get_robots_player(char robotstr, std::vector<Entity> &vecrobots)
     {
 
@@ -403,11 +438,12 @@ public: // Métodos
 };
 /* Experimentei ter dois constructors mas acabava por me repetir então vou pô-lo na parent class*/
 
-void clean()
+void clean(bool showmessege = 0)
 {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cout << "\nInvalid input. ";
+    if (showmessege)
+        std::cout << "\nInvalid input. ";
 }
 
 char get_input()
@@ -418,12 +454,12 @@ char get_input()
 
     const std::string commands_lower = "qweasdzxc";
     const std::string commands_upper = "QWEASDZXC";
-    bool can_continue = 1;
     do
     {
         std::cout << "Enter your next move: ";
-
-        if (std::cin >> action)
+        std::cin >> action;
+        //Só vamos verificar se a acão é possivel e  caso seja torna-la maiuscula caso o user tenha digitado apenas um caracter
+        if (std::cin.good() && std::cin.peek() == '\n')
         {
 
             // npos none position ou seja não encontrou
@@ -438,85 +474,95 @@ char get_input()
                 return action;
             }
         }
+        //Caso não tenhamos um input valido vamos limpar o buffer do teclado
+        clean(1);
 
-    } while (can_continue);
+    } while (true);
     //porque sem isto não funciona?
-    return 'c';
+    return 's';
+}
+
+void display_rules()
+{
+    std::string rules;
+    std::ifstream myfile("rules.txt");
+    if (myfile.is_open())
+    {
+        while (getline(myfile, rules))
+        {
+            std::cout << rules << '\n';
+        }
+        myfile.close();
+    }
+}
+
+void play_game() //Jogar o jogo e dar update aos winners caso ganhe
+{
+    //Secalhar sair logo quando o player morrer?
+    //Tratar melhor de quando o player é comido ficar a mostrar o player
+    std::vector<Entity> vec_robots;
+    Map first_try;
+    first_try.load(0);
+    Entity player(1, 1, 'H', first_try);
+    player.get_robots_player('R', vec_robots);
+    first_try.display_map();
+    bool robots_alive;
+    char move;
+    do
+    {
+        move = get_input();
+
+        player.move_player(move, vec_robots);
+
+        //Mover os robots
+        for (int i = 0; i < vec_robots.size(); i++)
+        {
+            vec_robots[i].move_robot(player, vec_robots);
+            if (!player.m_is_alive)
+                break;
+        }
+        //Não posso fazer o teste no mesmo ciclo em que movo os robots pois um pode estar vivo e depois ser morto por outro robot
+        robots_alive = 0;
+        for (int i = 0; i < vec_robots.size(); i++)
+        {
+            robots_alive |= vec_robots[i].m_is_alive;
+        }
+
+        first_try.display_map();
+    } while (player.m_is_alive && robots_alive);
 }
 
 void menu()
 {
 
-    int redu;
-    std::string rules;
-
-    std::cout << "Enter 0 to exit, 1 for the rules and 2 to play: ";
-
-    // verificar se o input esta correto
-    if (std::cin >> redu)
+    int option;
+    //Menu do while em vez de voltar recursivamente ao menu em cada caso assim é mais eficiente
+    do
     {
-        //Sair
-        if (redu == 0)
-        {
-            return;
-        }
-
-        //Mostrar as regras
-        else if (redu == 1)
+        std::cout << "Enter 0 to exit, 1 for the rules and 2 to play: ";
+        if (std::cin >> option)
         {
 
-            std::ifstream myfile("rules.txt");
-            if (myfile.is_open())
+            if (option == 1) //Mostrar regras
             {
-                while (getline(myfile, rules))
-                {
-                    std::cout << rules << '\n';
-                    std::cout << "chupa";
-                }
-                myfile.close();
+                display_rules();
+            }
 
-                return menu();
+            else if (option == 2) //Entrar no jogo
+            {
+                play_game();
+            }
+            //Para criar um novo mapa
+            else if (option == 3)
+            {
+                Map randommap;
+                randommap.build_map(10, 20);
+                randommap.save();
             }
         }
-        //Caso do jogo
-        else if (redu == 2)
-        {
-            std::vector<Entity> vec_robots;
-            Map first_try;
-            first_try.load(0);
-            Entity player(1, 1, 'H', first_try);
-            player.get_robots_player('R', vec_robots);
-            first_try.display_map();
-
-            char move;
-            do
-            {
-
-                move = get_input();
-                //A situação em que o player vai contra um robo ainda não esta contemplada
-                //bastou fazer a colisao com entidades como faco robot com robot
-                player.move_player(move, vec_robots);
-                for (int i = 0; i < vec_robots.size(); i++)
-                {
-                    vec_robots[i].move_robot(player, vec_robots);
-                }
-                first_try.display_map();
-            } while (player.m_is_alive);
-        }
-        //Opção invalida
-        else
-        {
-            clean();
-            return menu();
-        }
-    }
-
-    //para lidar com o bad input
-    else
-    {
+        //Se houver erro vai limpar o buffer , independente mente
         clean();
-        return menu();
-    }
+    } while (option);
 }
 
 int main()
