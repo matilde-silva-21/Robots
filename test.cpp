@@ -6,7 +6,6 @@
 #include <fstream> // file input output
 #include <iomanip>
 #include <limits> // std::numeric_limits<std::streamsize>::max()
-#include <chrono> // para a classe do timer
 
 struct tuple
 {
@@ -22,28 +21,6 @@ struct tuple
     bool equal(tuple tup1)
     {
         return tup1.x == x && tup1.y == y;
-    }
-};
-
-class timer
-{
-
-public:
-    auto start()
-    {
-        auto start = std::chrono::high_resolution_clock::now();
-        return start;
-    }
-
-    auto stop()
-    {
-        auto stop = std::chrono::high_resolution_clock::now();
-        return stop;
-    }
-    auto total()
-    {
-        auto total = std::chrono::duration_cast<std::chrono::microseconds>(stop() - start());
-        return total;
     }
 };
 
