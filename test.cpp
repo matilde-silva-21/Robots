@@ -6,6 +6,8 @@
 #include <fstream> // file input output
 #include <iomanip>
 #include <limits> // std::numeric_limits<std::streamsize>::max()
+#include <chrono>
+#include <cmath>
 
 struct tuple
 {
@@ -280,7 +282,7 @@ public: // Métodos
     }
     bool move_player(char move, std::vector<Entity> &entity_vec)
     {
-        bool canmove = 1;
+        bool cannotmove = 1;
         tuple movement(0, 0);
         switch (move)
 
@@ -361,7 +363,7 @@ public: // Métodos
             m_corrent = m_dead;
         }
         general_move(newline, newcol);
-        return canmove;
+        return cannotmove;
     }
 
     void move_robot(Entity &player, std::vector<Entity> &entity_vec)
@@ -436,7 +438,77 @@ public: // Métodos
         }
     }
 };
-/* Experimentei ter dois constructors mas acabava por me repetir então vou pô-lo na parent class*/
+
+class StopWatch
+{
+private:
+    bool counting = 0;
+    std::chrono::_V2::steady_clock::time_point start_time, stop_time;
+    std::chrono::duration<double> delta_t;
+
+public:
+    bool SECONDS = 0;
+    bool MILISECONDS = 0;
+    bool MICROSECONDS = 0;
+    bool NANOSECONDS = 0;
+
+public: // Métodos
+    void clear_settings()
+    {
+        SECONDS = 0;
+        MILISECONDS = 0;
+        MICROSECONDS = 0;
+        NANOSECONDS = 0;
+    }
+    void set(bool &conversion)
+    {
+        clear_settings();
+        conversion = 1;
+    }
+
+    double convert(std::chrono::duration<double> durationtime)
+    {
+        double in_seconds = static_cast<double>(durationtime.count());
+        if (SECONDS)
+        {
+            return static_cast<double>(durationtime.count());
+        }
+        else if (MILISECONDS)
+        {
+            return in_seconds * pow(10, 3);
+        }
+        else if (MICROSECONDS)
+        {
+            return in_seconds * pow(10, 6);
+        }
+        else if (NANOSECONDS)
+        {
+            return in_seconds * pow(10, 9);
+        }
+        return in_seconds;
+    }
+
+    double show()
+    {
+        return convert(delta_t);
+    }
+
+    void start()
+    {
+        counting = 1;
+        start_time = std::chrono::steady_clock::now();
+    }
+
+    void stop()
+    {
+        if (counting)
+        {
+            stop_time = std::chrono::steady_clock::now();
+            delta_t = stop_time - start_time;
+            counting = 0;
+        }
+    }
+};
 
 void clean(bool showmessege = 0)
 {
@@ -507,12 +579,18 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
     player.get_robots_player('R', vec_robots);
     first_try.display_map();
     bool robots_alive;
+    StopWatch stopwatch;
+
     char move;
+    stopwatch.start();
     do
     {
-        move = get_input();
-
-        player.move_player(move, vec_robots);
+        bool cannotmove = 1;
+        do
+        {
+            move = get_input();
+            cannotmove = !player.move_player(move, vec_robots);
+        } while (cannotmove);
 
         //Mover os robots
         for (int i = 0; i < vec_robots.size(); i++)
@@ -530,6 +608,9 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 
         first_try.display_map();
     } while (player.m_is_alive && robots_alive);
+    stopwatch.stop();
+    stopwatch.set(stopwatch.SECONDS);
+    std::cout << "Demoraste " << stopwatch.show() << " segundos." << std::endl;
 }
 
 void menu()
