@@ -1,15 +1,26 @@
-Player          - Time
-----------------------
-Sara Moura      –  512
-
-16+6=22
-
-posicao 16 e a do traco
-
-1 verificar se o ficheiro de score para o maze especifico ja existe.
-
-se existir:
-
-pedir ao jogador o nome, tem de ser ate 15 (criar funcao para lidar com o tamanho ou um if size >)
-
-
+Player          - Time(s)
+-------------------------
+Lara Daniela    -    4
+Zuleika bigass  -   14
+tania           -    5
+Jeronimo Mateus -    4
+123456789123456 -    7
+martim          -    3
+martim          -    4
+                -    4
+martim          -    6
+artim           -    5
+martim          -    3
+                -    3
+martim          -    4
+                -    3
+martim          -    4
+martim          -    3
+                -    3
+martim          -    4
+martimafonso    -    3
+12              -    4
+martim          -    3
+lara            -    3
+lalala          -    2
+martim          -    2

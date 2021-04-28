@@ -1,25 +1,29 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <cstdlib> // para usar o random
-#include <ctime>   // para inicializar o random e contar o tempo
-#include <fstream> // file input output
-#include <iomanip>
-#include <limits> // std::numeric_limits<std::streamsize>::max()
-#include <chrono>
-#include <cmath>
+#include <cstdlib>   // para usar o random
+#include <ctime>     // para inicializar o random
+#include <fstream>   // file input output
+#include <iomanip>   // baic io functions
+#include <limits>    // std::numeric_limits<std::streamsize>::max()
+#include <chrono>    // usada para fazer a class stopwatch
+#include <cmath>     // pow
+#include <stdexcept> // try catch
+#include <algorithm> // sort
 
 struct tuple
 {
-    //Um tuplo só para facilitar trabalhar com as coordenadas linhas/colunas
+    /*Um tuplo só para facilitar trabalhar com as coordenadas linhas/colunas
+    Ao longo do projeto o x é usado como linhas e o y como colunas
+    (x,y) -> (linha ,coluna) 
+    */
     int x;
     int y;
-    tuple(int a, int b)
+    tuple(int a, int b) //constructor
     {
         x = a;
         y = b;
     }
-
     bool equal(tuple tup1)
     {
         return tup1.x == x && tup1.y == y;
@@ -116,6 +120,8 @@ public: //Metodos
             m_map.push_back(line);
         }
     }
+    // Estes 3 metodos definidos em cima serviram para criar mapas e testar na fase de desenvolvimento
+    //Decidimos deixar para o caso de querer fazer outros mapas random
 
     void display_map()
     {
@@ -131,11 +137,19 @@ public: //Metodos
             std::cout << std::endl;
         }
     }
-    //Falta tratar disto
-    std::string namefile(int filenumber)
+
+    //Constroi o nome do ficheiro ou seja o path relavtivo do maze file
+    std::string namefile(std::string mazenumber)
     {
-        std::string unique = "Teste";
-        return "MAZE_" + unique + ".txt";
+        return "MAZE_" + mazenumber + ".txt";
+    }
+
+    //Verifica se um determinado maze existe
+    bool maze_exists(std::string mazenumber)
+    {
+        std::ifstream to_check(namefile(mazenumber));
+        // true se o ficheiro existir falso se não existir
+        return to_check.good();
     }
 
     //Escrever/guardar o mapa num ficheiro txt o nome tem a ver com o número que é dado pelo user ainda não percebi
@@ -146,7 +160,7 @@ public: //Metodos
         std::ofstream wfile; //output file
 
         //Não me vou preocupar com o tratemento do nome nesta func ela já recebe o nome tratado
-        wfile.open(namefile(0));
+        wfile.open(namefile("00"));
 
         //Primeira linha com as dimensões do mapa
         wfile << m_map_lines << "x" << m_map_columns << std::endl;
@@ -166,7 +180,7 @@ public: //Metodos
     }
 
     //Carregar mapa txt -> vector
-    void load(int filenumber)
+    void load(std::string filenumber)
     {
 
         std::ifstream rfile; // input from file
@@ -210,7 +224,7 @@ public: //Metodos
     }
 };
 
-class Entity
+class Entity // Cada entidade tem um par(linhas,coluna) e um pointer para n
 {
 public: // Atributos
     bool m_is_alive;
@@ -229,43 +243,12 @@ public: // Atributos
         m_p_col = col;
         m_alive = alive_str;
         m_corrent = alive_str;
-        // m_alive é uma string de len 1 o at(0) devolve me uma char ao somar 32 estou a convertÊlo para minuscula
-        // na tabela de ascii as minusculas distam 32 das maiusculas
-        //m_dead = std::string(1, (m_alive.at(0)) + 32);
         m_dead = char(m_alive + 32);
 
         m_pointermap = &mapa;
-        //update_entity_square() provavelmente vou remover esta funcao;
     }
 
 public: // Métodos
-    //dá para mandar embora
-    void display_entity_square()
-    {
-
-        for (int line = 0; line < 3; line++)
-        {
-            char *line_pointer = (char *)(m_entity_square) + 3 * line;
-            for (int col = 0; col < 3; col++)
-                std::cout << *(line_pointer + col);
-
-            std::cout << std::endl;
-        }
-    }
-    //dá para mandar embora
-    void update_entity_square()
-    {
-        //Tenho que alterar pois se a posicao do player é 0,0 vou tentar acedar a -1,-1
-        int pos_line = m_p_line - 1;
-        int pos_col = m_p_col - 1;
-        for (int l = 0; l < 3; l++)
-        {
-            for (int c = 0; c < 3; c++)
-            {
-                m_entity_square[l][c] = (*m_pointermap).m_map[pos_line + l][pos_col + c];
-            }
-        }
-    }
     tuple position()
     {
         return tuple(m_p_line, m_p_col);
@@ -514,6 +497,7 @@ void clean(bool showmessege = 0)
 {
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.sync();
     if (showmessege)
         std::cout << "\nInvalid input. ";
 }
@@ -568,21 +552,136 @@ void display_rules()
     }
 }
 
+bool order_sort(std::string i1, std::string i2)
+{
+    try
+    {
+
+        size_t index1 = i1.find_last_of(' '), index2 = i1.size() - index1;
+        size_t index3 = i2.find_last_of(' '), index4 = i2.size() - index3;
+        return (i1.substr(index1, index2) < i2.substr(index3, index4));
+    }
+
+    catch (const std::out_of_range &oor)
+    {
+
+        return false;
+    }
+}
+
+void clean_leaderboard(std::string mazenumber)
+{
+
+    std::vector<std::string> scores;
+    std::string current;
+    int count = 0;
+    std::ofstream wfile;                                        //escrever
+    std::ifstream rfile("MAZE_" + mazenumber + "_WINNERS.txt"); //ler
+
+    if (rfile.is_open())
+    {
+        while (getline(rfile, current))
+        {
+            count++;
+            if (count >= 3)
+            {
+                scores.push_back(current);
+            } //para nao meter no vetor o cabecalho
+        }
+    }
+
+    sort(scores.begin(), scores.end(), order_sort);
+
+    rfile.close();
+
+    wfile.open("MAZE_" + mazenumber + "_WINNERS.txt", std::ios::out | std::ios::trunc);
+
+    wfile << "Player          - Time\n----------------------\n";
+
+    for (int i = 0; i < scores.size(); i++)
+    {
+
+        wfile << scores[i] << std::endl;
+    }
+
+    wfile.close();
+}
+
+void create_leaderboard(std::string mazenumber)
+{
+    std::ofstream w_scores;
+    w_scores.open("MAZE_" + mazenumber + "_WINNERS.txt");
+    w_scores << "Player          - Time(s)\n-------------------------\n";
+    w_scores.close();
+}
+void add_to_leaderboard(double game_time, std::string mazenumber)
+{
+
+    int gametime = round(game_time);
+
+    std::ifstream r_scores;
+    r_scores.open("MAZE_" + mazenumber + "_WINNERS.txt");
+    std::string firstline;
+    bool failedopen = !getline(r_scores, firstline);
+    r_scores.close();
+    if (failedopen || firstline != "Player          - Time(s)")
+    {
+        create_leaderboard(mazenumber);
+    }
+    clean();
+    std::string player;
+    std::cout << "Please write your name (up to 15 characters): " << std::endl;
+    std::getline(std::cin, player);
+
+    while (player.size() > 15)
+    {
+        std::cout << "Invalid input. Please write up to 15 characters: ";
+        getline(std::cin, player);
+        std::string player(player);
+    }
+
+    int name_spaces = 16 - player.length();
+    //Pode surgir erro caso o tempo tenha mais que 5 algarismos
+    int time_spaces = 5 - (std::to_string(gametime).length());
+
+    std::ofstream w_scores("MAZE_" + mazenumber + "_WINNERS.txt", std::ofstream::app);
+    w_scores << player << std::string(name_spaces, ' ') << '-' << std::string(time_spaces, ' ') << gametime << '\n';
+
+    w_scores.close();
+}
+
 void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 {
-    //Secalhar sair logo quando o player morrer?
-    //Tratar melhor de quando o player é comido ficar a mostrar o player
-    std::vector<Entity> vec_robots;
+    //Inicializar o mapa depois tratar qual é o labirinto que se pretende jogar
     Map first_try;
-    first_try.load(0);
+    std::string mazenumber;
+    bool map_exists = 0;
+    do
+    {
+        std::cout << "Digite o número do labirinto que pretende jogar: ";
+        std::cin >> mazenumber;
+        if (first_try.maze_exists(mazenumber))
+            map_exists = 1;
+        else
+            std::cout << "Esse mapa não existe! \n";
+
+    } while (!map_exists);
+    first_try.load(mazenumber);
+
+    //Inicializar o player e o vetor onde vão estar guardados os robots
     Entity player(1, 1, 'H', first_try);
+    std::vector<Entity> vec_robots;
+    //Vai preencher a lista dos robots com os robots que se encontram no mapa
+    //é aqui que eles vão ser criados e guardados no vetor
     player.get_robots_player('R', vec_robots);
+
     first_try.display_map();
-    bool robots_alive;
-    StopWatch stopwatch;
+
+    StopWatch stopwatch; //Inicializar o relogio para cronometrar o jogo
 
     char move;
-    stopwatch.start();
+    bool robots_alive;
+    stopwatch.start(); //Time is ticking
     do
     {
         bool cannotmove = 1;
@@ -608,9 +707,15 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 
         first_try.display_map();
     } while (player.m_is_alive && robots_alive);
-    stopwatch.stop();
-    stopwatch.set(stopwatch.SECONDS);
-    std::cout << "Demoraste " << stopwatch.show() << " segundos." << std::endl;
+
+    stopwatch.stop();                 //Time stops
+    stopwatch.set(stopwatch.SECONDS); //Definir a unidade do tempo pois pode ser alterada
+    double game_time = stopwatch.show();
+
+    if (player.m_is_alive) //Se o player está vivo ou seja se ganhou o jogo
+    {
+        add_to_leaderboard(game_time, "XX");
+    }
 }
 
 void menu()
@@ -650,6 +755,6 @@ int main()
 {
 
     menu();
-
+    //add_to_leaderboard(10, "XX");
     return 0;
 }
