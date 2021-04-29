@@ -1,0 +1,6 @@
+Player          - Time(s)
+-------------------------
+Lara            -   83
+Lara Daniela    -    5
+Mario Cardoso   -    8
+Afonso Videira  -    6

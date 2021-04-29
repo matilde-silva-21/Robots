@@ -1,0 +1,12 @@
+Player          - Time(s)
+-------------------------
+fastest boy     -    2
+martim videria  -    3
+telo            -    3
+fast boy        -    3
+telo2           -    4
+tania maria     -    4
+Lara Daniela    -    5
+Afonso Videira  -    6
+rato            -    7
+Mario Cardoso   -    8

@@ -11,6 +11,15 @@
 #include <stdexcept> // try catch
 #include <algorithm> // sort
 
+void clean(bool showmessege = 0)
+{
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.sync();
+    if (showmessege)
+        std::cout << "\nInvalid input. ";
+}
+
 struct tuple
 {
     /*Um tuplo só para facilitar trabalhar com as coordenadas linhas/colunas
@@ -72,6 +81,8 @@ public: //Atributos
     // probabilidade de inserir dentro do mapa == 1/casos_possivei assim entre aspas
     // posso melhorar esta parte para impor que não haja muitas fences seguidas tipo num grupo  futuramente ?
     int m_casos_possiveis = 6;
+
+    std::string m_mazenumber;
 
 public: //Metodos
     //Random method para colocar ou não fences dentro do mapa
@@ -138,6 +149,10 @@ public: //Metodos
         }
     }
 
+    void set_mazenumber(std::string number)
+    {
+        m_mazenumber = number;
+    }
     //Constroi o nome do ficheiro ou seja o path relavtivo do maze file
     std::string namefile(std::string mazenumber)
     {
@@ -160,7 +175,7 @@ public: //Metodos
         std::ofstream wfile; //output file
 
         //Não me vou preocupar com o tratemento do nome nesta func ela já recebe o nome tratado
-        wfile.open(namefile("00"));
+        wfile.open(namefile(m_mazenumber));
 
         //Primeira linha com as dimensões do mapa
         wfile << m_map_lines << "x" << m_map_columns << std::endl;
@@ -180,13 +195,12 @@ public: //Metodos
     }
 
     //Carregar mapa txt -> vector
-    void load(std::string filenumber)
+    void load()
     {
-
         std::ifstream rfile; // input from file
 
         //Novamente qual é o ficheiro e o tratamento do nome do tal está abstraido deste metodo
-        rfile.open(namefile(filenumber));
+        rfile.open(namefile(m_mazenumber));
 
         //ler a primeira linha e define-se umas propriedades do mapa (member properties)
         char sep;
@@ -221,6 +235,129 @@ public: //Metodos
     char get_tile(int line, int col)
     {
         return m_map[line][col];
+    }
+
+    void create_leaderboard() // E cria o cabeçalho
+    {
+        std::ofstream w_scores;
+        w_scores.open("MAZE_" + m_mazenumber + "_WINNERS.txt");
+        w_scores << "Player          - Time(s)\n-------------------------\n";
+        w_scores.close();
+    }
+    void swap(std::vector<std::string> &vc, int pos1, int pos2)
+    {
+        std::string nome = vc[pos1], tempo = vc[pos1 + 1];
+        vc[pos1] = vc[pos2];
+        vc[pos1 + 1] = vc[pos2 + 1];
+        vc[pos2] = nome;
+        vc[pos2 + 1] = tempo;
+    }
+
+    void get_winners(std::vector<std::string> &winners)
+    {
+        //os nomes tem no maximo 15 caracteres , na posicao 16 da linha está o caracter '-'
+        std::string m_mazenumber = "01";
+        std::ifstream r_file("MAZE_" + m_mazenumber + "_WINNERS.txt");
+        std::string line;
+        int c = 0;
+        while (getline(r_file, line))
+        {
+            if (c < 2) //Para ignorar as 2 primeiras linhas
+            {
+                c++;
+                continue;
+            }
+            std::string name = "", time = "";
+            name = (line.substr(0, 16));
+            name = std::string(name.rbegin(), name.rend());
+            int position;
+            for (int i = 0; i < name.size(); i++)
+            {
+                if (name[i] != ' ')
+                {
+                    position = i;
+                    break;
+                }
+            }
+            name = (std::string(name.rbegin(), name.rend())).substr(0, name.size() - position);
+            for (char num : line.substr(17, line.size()))
+            {
+                if (num != ' ')
+                {
+                    time += num;
+                }
+            }
+            winners.push_back(name);
+            winners.push_back(time);
+            c++;
+        }
+    }
+    void sort(std::vector<std::string> &winners)
+    {
+        int limit = winners.size() - 1;
+        for (int pessoa = 0; pessoa < limit; pessoa += 2)
+        {
+            int tempo = stoi(winners[pessoa + 1]);
+            for (int prox = (pessoa + 2); prox < limit; prox += 2)
+            {
+                if (stoi(winners[prox + 1]) < tempo)
+                {
+                    swap(winners, pessoa, prox);
+                    tempo = stoi(winners[pessoa + 1]);
+                }
+            }
+        }
+    }
+
+    void write_winners(std::string nome, std::string tempo)
+    {
+        // um vector em que o primeiro elemento é  o nome e o segundo é o tempo e assim sucessivamente
+        std::vector<std::string> winners;
+        get_winners(winners);
+        //O novo winner é posto no fim da lista para o caso de haver um empate de tempo o que ganhou em primeiro lugar ter prioridade
+        winners.push_back(nome);
+        winners.push_back(tempo);
+        sort(winners);
+        create_leaderboard();
+        //Escrever os winners no file
+        std::ofstream r_file("MAZE_" + m_mazenumber + "_WINNERS.txt", std::ofstream::app); //output to file
+        int cicles = winners.size();
+        for (int i = 0; i < cicles; i += 2)
+        {
+
+            int name_spaces = 16 - winners[i].length();
+            //Pode surgir erro caso o tempo tenha mais que 5 algarismos
+            int time_spaces = 5 - (winners[i + 1].length());
+            time_spaces = (time_spaces < 1) ? 1 : time_spaces;
+            r_file << winners[i] << std::string(name_spaces, ' ') << '-' << std::string(time_spaces, ' ') << winners[i + 1] << '\n';
+        }
+    }
+    void add_to_leaderboard(double game_time)
+    {
+
+        int gametime = round(game_time);
+
+        std::ifstream r_scores;
+        r_scores.open("MAZE_" + m_mazenumber + "_WINNERS.txt");
+        std::string firstline;
+        bool failedopen = !getline(r_scores, firstline);
+        r_scores.close();
+        if (failedopen || firstline != "Player          - Time(s)")
+        {
+            create_leaderboard();
+        }
+        clean();
+        std::string player;
+        std::cout << "Please write your name (up to 15 characters): " << std::endl;
+        std::getline(std::cin, player);
+
+        while (player.size() > 15)
+        {
+            std::cout << "Invalid input. Please write up to 15 characters: ";
+            getline(std::cin, player);
+            std::string player(player);
+        }
+        write_winners(player, std::to_string(gametime));
     }
 };
 
@@ -493,15 +630,6 @@ public: // Métodos
     }
 };
 
-void clean(bool showmessege = 0)
-{
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cin.sync();
-    if (showmessege)
-        std::cout << "\nInvalid input. ";
-}
-
 char get_input()
 {
 
@@ -552,104 +680,6 @@ void display_rules()
     }
 }
 
-bool order_sort(std::string i1, std::string i2)
-{
-    try
-    {
-
-        size_t index1 = i1.find_last_of(' '), index2 = i1.size() - index1;
-        size_t index3 = i2.find_last_of(' '), index4 = i2.size() - index3;
-        return (i1.substr(index1, index2) < i2.substr(index3, index4));
-    }
-
-    catch (const std::out_of_range &oor)
-    {
-
-        return false;
-    }
-}
-
-void clean_leaderboard(std::string mazenumber)
-{
-
-    std::vector<std::string> scores;
-    std::string current;
-    int count = 0;
-    std::ofstream wfile;                                        //escrever
-    std::ifstream rfile("MAZE_" + mazenumber + "_WINNERS.txt"); //ler
-
-    if (rfile.is_open())
-    {
-        while (getline(rfile, current))
-        {
-            count++;
-            if (count >= 3)
-            {
-                scores.push_back(current);
-            } //para nao meter no vetor o cabecalho
-        }
-    }
-
-    sort(scores.begin(), scores.end(), order_sort);
-
-    rfile.close();
-
-    wfile.open("MAZE_" + mazenumber + "_WINNERS.txt", std::ios::out | std::ios::trunc);
-
-    wfile << "Player          - Time\n----------------------\n";
-
-    for (int i = 0; i < scores.size(); i++)
-    {
-
-        wfile << scores[i] << std::endl;
-    }
-
-    wfile.close();
-}
-
-void create_leaderboard(std::string mazenumber)
-{
-    std::ofstream w_scores;
-    w_scores.open("MAZE_" + mazenumber + "_WINNERS.txt");
-    w_scores << "Player          - Time(s)\n-------------------------\n";
-    w_scores.close();
-}
-void add_to_leaderboard(double game_time, std::string mazenumber)
-{
-
-    int gametime = round(game_time);
-
-    std::ifstream r_scores;
-    r_scores.open("MAZE_" + mazenumber + "_WINNERS.txt");
-    std::string firstline;
-    bool failedopen = !getline(r_scores, firstline);
-    r_scores.close();
-    if (failedopen || firstline != "Player          - Time(s)")
-    {
-        create_leaderboard(mazenumber);
-    }
-    clean();
-    std::string player;
-    std::cout << "Please write your name (up to 15 characters): " << std::endl;
-    std::getline(std::cin, player);
-
-    while (player.size() > 15)
-    {
-        std::cout << "Invalid input. Please write up to 15 characters: ";
-        getline(std::cin, player);
-        std::string player(player);
-    }
-
-    int name_spaces = 16 - player.length();
-    //Pode surgir erro caso o tempo tenha mais que 5 algarismos
-    int time_spaces = 5 - (std::to_string(gametime).length());
-
-    std::ofstream w_scores("MAZE_" + mazenumber + "_WINNERS.txt", std::ofstream::app);
-    w_scores << player << std::string(name_spaces, ' ') << '-' << std::string(time_spaces, ' ') << gametime << '\n';
-
-    w_scores.close();
-}
-
 void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 {
     //Inicializar o mapa depois tratar qual é o labirinto que se pretende jogar
@@ -666,7 +696,8 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
             std::cout << "Esse mapa não existe! \n";
 
     } while (!map_exists);
-    first_try.load(mazenumber);
+    first_try.set_mazenumber(mazenumber);
+    first_try.load();
 
     //Inicializar o player e o vetor onde vão estar guardados os robots
     Entity player(1, 1, 'H', first_try);
@@ -714,7 +745,7 @@ void play_game() //Jogar o jogo e dar update aos winners caso ganhe
 
     if (player.m_is_alive) //Se o player está vivo ou seja se ganhou o jogo
     {
-        add_to_leaderboard(game_time, "XX");
+        first_try.add_to_leaderboard(game_time);
     }
 }
 
@@ -739,22 +770,28 @@ void menu()
                 play_game();
             }
             //Para criar um novo mapa
+            /*
             else if (option == 3)
             {
                 Map randommap;
                 randommap.build_map(10, 20);
+                randommap.set_mazenumber("05");
                 randommap.save();
             }
+            */
         }
+        else
+            option = 1; //Se não conseguimos ler nada para option vamos coloca-la a um numero diferente de 0 para continuar o cilco fd
         //Se houver erro vai limpar o buffer , independente mente
         clean();
-    } while (option);
+
+    } while (option != 0);
 }
 
 int main()
 {
 
     menu();
-    //add_to_leaderboard(10, "XX");
+
     return 0;
 }
